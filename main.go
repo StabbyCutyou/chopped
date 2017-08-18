@@ -2,8 +2,10 @@ package main
 
 import (
 	"crypto/rand"
+	"flag"
 	"fmt"
 	"math/big"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -19,6 +21,16 @@ var pantry = []string{
 }
 
 func main() {
+	c := flag.Int("c", 1, "Determines if this is in bulk mode or not. Defaults to 1, which disables bulk mode")
+	flag.Parse()
+	if *c == 1 {
+		runShowMode()
+		os.Exit(0)
+	}
+	runBulkMode(*c)
+}
+
+func runShowMode() {
 	fmt.Println("Tonight! On Chopped: Boston Go edition...")
 	time.Sleep(2 * time.Second)
 	fmt.Println("Our contests will be charged with making a completely new library or application...")
@@ -38,6 +50,24 @@ func main() {
 	}
 }
 
+func runBulkMode(c int) {
+	for k := 0; k < c; k++ {
+		p := loadPackages()
+		size := big.NewInt(int64(len(p)))
+		fmt.Printf("------------------Basket %d---------------\n", k)
+		for i := 0; i < 5; i++ {
+			alex, _ := rand.Int(rand.Reader, size)
+			fmt.Println(p[alex.Int64()])
+		}
+		fmt.Println(">>> Staple Pantry <<<")
+		for _, item := range pantry {
+			fmt.Println(item)
+		}
+		fmt.Println("------------------------------------------")
+	}
+
+}
+
 func loadPackages() []string {
 	cmd := exec.Command("go", "list", "std")
 	b, err := cmd.Output()
@@ -52,7 +82,8 @@ func loadPackages() []string {
 			strings.Contains(p, "math") ||
 			strings.Contains(p, "errors") ||
 			strings.Contains(p, "flag") ||
-			strings.Contains(p, "time") {
+			strings.Contains(p, "time") ||
+			p == "" {
 			continue
 		}
 		finalList = append(finalList, p)
