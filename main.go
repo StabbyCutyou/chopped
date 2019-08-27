@@ -19,7 +19,27 @@ var pantry = []string{
 	"testing",
 	"flag",
 	"io",
+	"context",
+	"fmt",
 }
+
+var xmap = map[string]string{
+	"crypto":  "golang.org/x/crypto",
+	"image":   "golang.org/x/image",
+	"net":     "golang.org/x/net",
+	"syscall": "golang.org/x/sys",
+	"text":    "golang.org/x/text",
+	"tools":   "golang.org/x/tools",
+}
+
+var xorphans = []string{
+	"golang.org/x/blog",
+	"golang.org/x/exp",
+	"golang.org/x/mobile",
+	"golang.org/x/talks",
+}
+
+var rejects = append(pantry, "vendor", "internal")
 
 func main() {
 	c := flag.Int("c", 1, "Determines if this is in bulk mode or not. Defaults to 1, which disables bulk mode")
@@ -68,6 +88,28 @@ func contains(l []string, p string) bool {
 	return false
 }
 
+func pickSeasoning(list []string) string {
+	seasons := make([]string, 0)
+	// collect all possible seasonins for known packages
+	for _, l := range list {
+		if s, ok := xmap[l]; ok {
+			seasons = append(seasons, s)
+		}
+	}
+	// if none found, use an orphan
+	if len(seasons) == 0 {
+		// return rand orphan
+		size := big.NewInt(int64(len(xorphans)))
+		// return rand season
+		mark, _ := rand.Int(rand.Reader, size)
+		return xorphans[mark.Int64()]
+	}
+	size := big.NewInt(int64(len(seasons)))
+	// return rand season
+	aron, _ := rand.Int(rand.Reader, size)
+	return seasons[aron.Int64()]
+}
+
 func runBulkMode(c int, easy bool) {
 	for k := 0; k < c; k++ {
 		p := loadPackages(easy)
@@ -84,6 +126,8 @@ func runBulkMode(c int, easy bool) {
 			list = append(list, pick)
 			fmt.Println(pick)
 		}
+		fmt.Println(">>> Seasoning X <<<")
+		fmt.Println(pickSeasoning(list))
 		fmt.Println(">>> Staple Pantry <<<")
 		for _, item := range pantry {
 			fmt.Println(item)
@@ -91,6 +135,18 @@ func runBulkMode(c int, easy bool) {
 		fmt.Println("------------------------------------------")
 	}
 
+}
+
+func isRejected(p string) bool {
+	if p == "" {
+		return true
+	}
+	for _, r := range rejects {
+		if strings.Contains(p, r) {
+			return true
+		}
+	}
+	return false
 }
 
 func loadPackages(easy bool) []string {
@@ -102,16 +158,7 @@ func loadPackages(easy bool) []string {
 	s := strings.Split(string(b), "\n")
 	finalList := make([]string, 0)
 	for _, p := range s {
-		if strings.Contains(p, "vendor") ||
-			strings.Contains(p, "testing") ||
-			strings.Contains(p, "math") ||
-			strings.Contains(p, "errors") ||
-			strings.Contains(p, "flag") ||
-			strings.Contains(p, "time") ||
-			strings.Contains(p, "strings") ||
-			strings.Contains(p, "io") ||
-			strings.Contains(p, "internal") ||
-			p == "" {
+		if isRejected(p) {
 			continue
 		}
 		if easy {
